@@ -21,6 +21,7 @@
     "FLASK_DEBUG": "0"
   },
   "includeFiles": [
-    "templates/**"
+    "templates/**",
+    "static/**"
   ]
 } 
