@@ -1,6 +1,13 @@
 from flask import Flask, render_template, request
+import logging
+import traceback
+import sys
 
 app = Flask(__name__)
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 def calculate_bmi(weight, height):
     if weight <= 0 or height <= 0:
@@ -92,164 +99,209 @@ def convert_height(height, unit, inches=0):
 
 @app.route('/')
 def home():
-    return render_template('home.html', title="Understanding BMI and BMR")
+    try:
+        logger.info("Accessing home route")
+        return render_template('home.html', title="Understanding BMI and BMR")
+    except Exception as e:
+        logger.error(f"Error in home route: {str(e)}")
+        logger.error(traceback.format_exc())
+        return f"An error occurred: {str(e)}", 500
 
 @app.route('/bmi', methods=['GET', 'POST'])
 def bmi_calculator():
-    bmi = None
-    category = None
-    age_note = None
-    error = None
-    if request.method == 'POST':
-        try:
-            # Get form values
-            weight = float(request.form['weight'])
-            weight_unit = request.form['weight_unit']
-            height = float(request.form['height'])
-            height_unit = request.form['height_unit']
-            
-            # Get age and gender if provided
-            age = None
-            gender = None
-            if 'age' in request.form:
-                age = int(request.form['age'])
-            if 'gender' in request.form:
-                gender = request.form['gender']
-            
-            # Get inches if height unit is feet
-            inches = 0
-            if height_unit == 'ft' and 'inches' in request.form:
-                inches = float(request.form['inches'])
-            
-            # Convert to kg and meters
-            weight_kg = convert_weight(weight, weight_unit)
-            height_m = convert_height(height, height_unit, inches)
-            
-            # Validate input values
-            if weight <= 0:
-                raise ValueError("Weight must be a positive number")
-            if height <= 0:
-                raise ValueError("Height must be a positive number")
-            if age is not None and (age < 2 or age > 120):
-                raise ValueError("Age must be between 2 and 120 years")
+    try:
+        bmi = None
+        category = None
+        age_note = None
+        error = None
+        if request.method == 'POST':
+            try:
+                # Get form values
+                weight = float(request.form['weight'])
+                weight_unit = request.form['weight_unit']
+                height = float(request.form['height'])
+                height_unit = request.form['height_unit']
                 
-            # Check for unrealistic values based on units
-            if weight_unit == 'kg' and weight_kg > 500:
-                raise ValueError("Please enter a realistic weight (max 500 kg)")
-            elif weight_unit == 'lb' and weight > 1100:
-                raise ValueError("Please enter a realistic weight (max 1100 lb)")
+                # Get age and gender if provided
+                age = None
+                gender = None
+                if 'age' in request.form:
+                    age = int(request.form['age'])
+                if 'gender' in request.form:
+                    gender = request.form['gender']
                 
-            if height_unit == 'm' and height > 3:
-                raise ValueError("Please enter a realistic height (max 3 m)")
-            elif height_unit == 'cm' and height > 300:
-                raise ValueError("Please enter a realistic height (max 300 cm)")
-            elif height_unit == 'ft' and height > 9:
-                raise ValueError("Please enter a realistic height (max 9 ft)")
+                # Get inches if height unit is feet
+                inches = 0
+                if height_unit == 'ft' and 'inches' in request.form:
+                    inches = float(request.form['inches'])
                 
-            bmi = round(calculate_bmi(weight_kg, height_m), 2)
-            category = get_bmi_category(bmi)
-            
-            # Get age-specific notes if age is provided
-            if age is not None and gender is not None:
-                age_note = get_age_specific_bmi_note(age, bmi, gender)
+                # Convert to kg and meters
+                weight_kg = convert_weight(weight, weight_unit)
+                height_m = convert_height(height, height_unit, inches)
                 
-        except ValueError as e:
-            error_msg = str(e)
-            if "could not convert" in error_msg.lower():
-                error = "Please enter valid numbers."
-            else:
-                error = error_msg
-            bmi = None
-            category = None
-            age_note = None
-    return render_template('index.html', bmi=bmi, category=category, age_note=age_note, error=error, title="BMI Calculator")
+                # Validate input values
+                if weight <= 0:
+                    raise ValueError("Weight must be a positive number")
+                if height <= 0:
+                    raise ValueError("Height must be a positive number")
+                if age is not None and (age < 2 or age > 120):
+                    raise ValueError("Age must be between 2 and 120 years")
+                    
+                # Check for unrealistic values based on units
+                if weight_unit == 'kg' and weight_kg > 500:
+                    raise ValueError("Please enter a realistic weight (max 500 kg)")
+                elif weight_unit == 'lb' and weight > 1100:
+                    raise ValueError("Please enter a realistic weight (max 1100 lb)")
+                    
+                if height_unit == 'm' and height > 3:
+                    raise ValueError("Please enter a realistic height (max 3 m)")
+                elif height_unit == 'cm' and height > 300:
+                    raise ValueError("Please enter a realistic height (max 300 cm)")
+                elif height_unit == 'ft' and height > 9:
+                    raise ValueError("Please enter a realistic height (max 9 ft)")
+                    
+                bmi = round(calculate_bmi(weight_kg, height_m), 2)
+                category = get_bmi_category(bmi)
+                
+                # Get age-specific notes if age is provided
+                if age is not None and gender is not None:
+                    age_note = get_age_specific_bmi_note(age, bmi, gender)
+                    
+            except ValueError as e:
+                error_msg = str(e)
+                if "could not convert" in error_msg.lower():
+                    error = "Please enter valid numbers."
+                else:
+                    error = error_msg
+                bmi = None
+                category = None
+                age_note = None
+        logger.info("Rendering BMI calculator page")
+        return render_template('index.html', bmi=bmi, category=category, age_note=age_note, error=error, title="BMI Calculator")
+    except Exception as e:
+        logger.error(f"Error in bmi_calculator route: {str(e)}")
+        logger.error(traceback.format_exc())
+        return f"An error occurred: {str(e)}", 500
 
 @app.route('/home')
 def redirect_home():
-    return render_template('home.html', title="Understanding BMI and BMR")
+    try:
+        logger.info("Redirecting to home")
+        return render_template('home.html', title="Understanding BMI and BMR")
+    except Exception as e:
+        logger.error(f"Error in redirect_home route: {str(e)}")
+        logger.error(traceback.format_exc())
+        return f"An error occurred: {str(e)}", 500
 
 @app.route('/sustainable-engineering')
 def sustainable_engineering():
-    # Create this template if it doesn't exist
-    return render_template('sustainable_engineering.html', title="Sustainable Engineering")
+    try:
+        logger.info("Accessing sustainable engineering page")
+        return render_template('sustainable_engineering.html', title="Sustainable Engineering")
+    except Exception as e:
+        logger.error(f"Error in sustainable_engineering route: {str(e)}")
+        logger.error(traceback.format_exc())
+        return f"An error occurred: {str(e)}", 500
 
 @app.route('/pros-cons')
 def pros_cons():
-    return render_template('pros_cons.html', title="Pros & Cons of BMI")
+    try:
+        logger.info("Accessing pros and cons page")
+        return render_template('pros_cons.html', title="Pros & Cons of BMI")
+    except Exception as e:
+        logger.error(f"Error in pros_cons route: {str(e)}")
+        logger.error(traceback.format_exc())
+        return f"An error occurred: {str(e)}", 500
 
 @app.route('/bmr', methods=['GET', 'POST'])
 def bmr():
-    bmr_result = None
-    tdee_result = None
-    error = None
-    if request.method == 'POST':
-        try:
-            # Get form values
-            weight = float(request.form['weight'])
-            weight_unit = request.form['weight_unit']
-            height = float(request.form['height'])
-            height_unit = request.form['height_unit']
-            age = int(request.form['age'])
-            gender = request.form['gender']
-            
-            # Get activity level if provided
-            activity_level = request.form.get('activity_level', 'sedentary')
-            
-            # Get inches if height unit is feet
-            inches = 0
-            if height_unit == 'ft' and 'inches' in request.form:
-                inches = float(request.form['inches'])
-            
-            # Convert to kg and cm
-            weight_kg = convert_weight(weight, weight_unit)
-            
-            # For BMR calculation, height should be in cm
-            if height_unit == 'm':
-                height_cm = height * 100
-            elif height_unit == 'cm':
-                height_cm = height
-            elif height_unit == 'ft':
-                # Convert feet and inches to cm
-                feet_in_cm = height * 30.48  # 1 ft = 30.48 cm
-                inches_in_cm = inches * 2.54  # 1 inch = 2.54 cm
-                height_cm = feet_in_cm + inches_in_cm
-            
-            # Validate input values
-            if weight <= 0:
-                raise ValueError("Weight must be a positive number")
-            if height <= 0:
-                raise ValueError("Height must be a positive number")
-            if age <= 0 or age > 120:
-                raise ValueError("Age must be between 0 and 120 years")
+    try:
+        bmr_result = None
+        tdee_result = None
+        error = None
+        if request.method == 'POST':
+            try:
+                # Get form values
+                weight = float(request.form['weight'])
+                weight_unit = request.form['weight_unit']
+                height = float(request.form['height'])
+                height_unit = request.form['height_unit']
+                age = int(request.form['age'])
+                gender = request.form['gender']
                 
-            # Check for unrealistic values based on units
-            if weight_unit == 'kg' and weight_kg > 500:
-                raise ValueError("Please enter a realistic weight (max 500 kg)")
-            elif weight_unit == 'lb' and weight > 1100:
-                raise ValueError("Please enter a realistic weight (max 1100 lb)")
+                # Get activity level if provided
+                activity_level = request.form.get('activity_level', 'sedentary')
                 
-            if height_unit == 'm' and height > 3:
-                raise ValueError("Please enter a realistic height (max 3 m)")
-            elif height_unit == 'cm' and height > 300:
-                raise ValueError("Please enter a realistic height (max 300 cm)")
-            elif height_unit == 'ft' and height > 9:
-                raise ValueError("Please enter a realistic height (max 9 ft)")
-            
-            # Calculate BMR using the Mifflin-St Jeor Equation
-            bmr_result = round(calculate_bmr(gender, age, weight_kg, height_cm), 0)
-            
-            # Calculate TDEE if activity level is provided
-            if activity_level:
-                tdee_result = round(calculate_tdee(bmr_result, activity_level), 0)
+                # Get inches if height unit is feet
+                inches = 0
+                if height_unit == 'ft' and 'inches' in request.form:
+                    inches = float(request.form['inches'])
                 
-        except ValueError as e:
-            error_msg = str(e)
-            if "could not convert" in error_msg.lower():
-                error = "Please enter valid numbers."
-            else:
-                error = error_msg
-    
-    return render_template('bmr.html', bmr_result=bmr_result, tdee_result=tdee_result, error=error, title="BMR Calculator")
+                # Convert to kg and cm
+                weight_kg = convert_weight(weight, weight_unit)
+                
+                # For BMR calculation, height should be in cm
+                if height_unit == 'm':
+                    height_cm = height * 100
+                elif height_unit == 'cm':
+                    height_cm = height
+                elif height_unit == 'ft':
+                    # Convert feet and inches to cm
+                    feet_in_cm = height * 30.48  # 1 ft = 30.48 cm
+                    inches_in_cm = inches * 2.54  # 1 inch = 2.54 cm
+                    height_cm = feet_in_cm + inches_in_cm
+                
+                # Validate input values
+                if weight <= 0:
+                    raise ValueError("Weight must be a positive number")
+                if height <= 0:
+                    raise ValueError("Height must be a positive number")
+                if age <= 0 or age > 120:
+                    raise ValueError("Age must be between 0 and 120 years")
+                    
+                # Check for unrealistic values based on units
+                if weight_unit == 'kg' and weight_kg > 500:
+                    raise ValueError("Please enter a realistic weight (max 500 kg)")
+                elif weight_unit == 'lb' and weight > 1100:
+                    raise ValueError("Please enter a realistic weight (max 1100 lb)")
+                    
+                if height_unit == 'm' and height > 3:
+                    raise ValueError("Please enter a realistic height (max 3 m)")
+                elif height_unit == 'cm' and height > 300:
+                    raise ValueError("Please enter a realistic height (max 300 cm)")
+                elif height_unit == 'ft' and height > 9:
+                    raise ValueError("Please enter a realistic height (max 9 ft)")
+                
+                # Calculate BMR using the Mifflin-St Jeor Equation
+                bmr_result = round(calculate_bmr(gender, age, weight_kg, height_cm), 0)
+                
+                # Calculate TDEE if activity level is provided
+                if activity_level:
+                    tdee_result = round(calculate_tdee(bmr_result, activity_level), 0)
+                    
+            except ValueError as e:
+                error_msg = str(e)
+                if "could not convert" in error_msg.lower():
+                    error = "Please enter valid numbers."
+                else:
+                    error = error_msg
+        logger.info("Rendering BMR calculator page")
+        return render_template('bmr.html', bmr_result=bmr_result, tdee_result=tdee_result, error=error, title="BMR Calculator")
+    except Exception as e:
+        logger.error(f"Error in bmr route: {str(e)}")
+        logger.error(traceback.format_exc())
+        return f"An error occurred: {str(e)}", 500
+
+# Add a catch-all error handler for Vercel deployment
+@app.errorhandler(404)
+def not_found(e):
+    logger.error(f"404 error: {str(e)}")
+    return "Page not found", 404
+
+@app.errorhandler(500)
+def server_error(e):
+    logger.error(f"500 error: {str(e)}")
+    return "Internal server error", 500
 
 if __name__ == '__main__':
     app.run(debug=True)
