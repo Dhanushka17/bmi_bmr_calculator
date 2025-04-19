@@ -1,5 +1,6 @@
 import sys
 import logging
+import os
 from app import app
 
 # Set up error logging for Vercel deployment
@@ -8,8 +9,31 @@ logger = logging.getLogger(__name__)
 
 try:
     logger.info("WSGI application initialized successfully")
-    # This ensures that any app configuration happens
-    # before the request handling starts
+    
+    # Check if templates directory exists
+    templates_path = os.path.join(os.path.dirname(__file__), 'templates')
+    if os.path.exists(templates_path):
+        logger.info(f"Templates directory found at {templates_path}")
+        try:
+            template_files = os.listdir(templates_path)
+            logger.info(f"Templates available: {template_files}")
+        except Exception as e:
+            logger.error(f"Failed to list templates: {str(e)}")
+    else:
+        logger.error(f"Templates directory not found at {templates_path}")
+    
+    # Check if static directory exists
+    static_path = os.path.join(os.path.dirname(__file__), 'static')
+    if os.path.exists(static_path):
+        logger.info(f"Static directory found at {static_path}")
+        try:
+            static_files = os.listdir(static_path)
+            logger.info(f"Static files available: {static_files}")
+        except Exception as e:
+            logger.error(f"Failed to list static files: {str(e)}")
+    else:
+        logger.error(f"Static directory not found at {static_path}")
+    
 except Exception as e:
     logger.error(f"Error during WSGI initialization: {str(e)}")
     import traceback

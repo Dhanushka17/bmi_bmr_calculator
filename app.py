@@ -1,7 +1,8 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, send_from_directory
 import logging
 import traceback
 import sys
+import os
 
 app = Flask(__name__)
 
@@ -101,6 +102,20 @@ def convert_height(height, unit, inches=0):
 def home():
     try:
         logger.info("Accessing home route")
+        try:
+            # Check if template exists
+            open(os.path.join(app.root_path, 'templates', 'home.html'), 'r')
+            logger.info("home.html template found")
+        except Exception as e:
+            logger.error(f"Template check error: {str(e)}")
+            
+        # Log all available templates
+        try:
+            template_files = os.listdir(os.path.join(app.root_path, 'templates'))
+            logger.info(f"Available templates: {template_files}")
+        except Exception as e:
+            logger.error(f"Error listing templates: {str(e)}")
+            
         return render_template('home.html', title="Understanding BMI and BMR")
     except Exception as e:
         logger.error(f"Error in home route: {str(e)}")
@@ -291,6 +306,15 @@ def bmr():
         logger.error(f"Error in bmr route: {str(e)}")
         logger.error(traceback.format_exc())
         return f"An error occurred: {str(e)}", 500
+
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, 'static'),
+                               'favicon.ico', mimetype='image/vnd.microsoft.icon')
+
+@app.route('/static/<path:filename>')
+def static_files(filename):
+    return send_from_directory(os.path.join(app.root_path, 'static'), filename)
 
 # Add a catch-all error handler for Vercel deployment
 @app.errorhandler(404)
